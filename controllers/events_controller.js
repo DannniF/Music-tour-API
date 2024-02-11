@@ -1,14 +1,14 @@
 const events = require('express').Router();
 const db = require('../models');
 const { Event } = db;
-
+const { Op } = require('sequelize');
 //READ - Find All Events
 events.get('/', async (req, res ) => {
     try {
         const foundEvents = await Event.findAll({
             order: [ ['avaiable_start_time', 'ASC']],
             where: {
-                name: { [Op.like]: `%${req.query.name}%}`}
+                name: {  [Op.like]: `%${req.query.name ? req.query.name : ''}%`}
             }
         });
         res.status(200).json(foundEvents);
@@ -18,10 +18,30 @@ events.get('/', async (req, res ) => {
 })
 
 //READ - FIND SPECIFIC Event
-events.get('/:id', async(req, res) => {
+events.get('/:name', async(req, res) => {
     try {
         const foundEvent = await Event.findOne({
-            where: {event_id: req.params.id}
+            where: {event_id: req.params.id},
+            include: [
+                {
+                    model: MeetGreet,
+                    as: 'meet_greet',
+                    include: {
+                        model: Event,
+                        as: 'event',
+                        where: { name: { [Op.like]: `%${req.query.event ? req.query.event : ''}%`}}
+                    }
+                },
+                {
+                    model: SetTime,
+                    as: 'set_times',
+                    include: {
+                        model: Event,
+                        as: 'event',
+                        where: { name: { [Op.like]: `%${req.query.event ? req.query.event : ''}%`}}
+                    }
+                }
+            ]
         });
         res.status(200).json(foundEvent);
     } catch (err) {
